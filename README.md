@@ -46,7 +46,7 @@
 
 ## 0단계: 초안 작업
 
-![KakaoTalk_20260616_185715034.jpg](KakaoTalk_20260616_185715034.jpg)
+![](images/KakaoTalk_20260616_185715034.jpg)
 
 ---
 
@@ -260,9 +260,9 @@ python3 servo_angle_test.py
 
 | 인식 결과 | 동작 |
 |-----------|------|
-| ![캔 인식하고 70도로 돌아가는 모터](KakaoTalk_20260616_195511742_01.jpg) | 캔(metal) 인식 → 모터 `70°` |
-| ![플라스틱 인식하고 -70도로 돌아가는 모터](KakaoTalk_20260616_195511742.jpg) | 플라스틱(plastic) 인식 → 모터 `-70°` |
-| ![종이로 인식하고 0도에 있는 모터](KakaoTalk_20260616_195511742_02.jpg) | 종이(paper) 인식 → 모터 `0°` |
+| ![](images/KakaoTalk_20260616_195511742_01.jpg) | 캔(metal) 인식 → 모터 `70°` |
+| ![](images/KakaoTalk_20260616_195511742.jpg) | 플라스틱(plastic) 인식 → 모터 `-70°` |
+| ![](images/KakaoTalk_20260616_195511742_02.jpg) | 종이(paper) 인식 → 모터 `0°` |
 
 ---
 
@@ -477,7 +477,7 @@ python3 main.py
 
 ## 9단계: 쓰레기통 제작 및 연결
 
-![KakaoTalk_20260617_114949820.jpg](KakaoTalk_20260617_114949820.jpg)
+![](images/KakaoTalk_20260617_114949820.jpg)
 
 ---
 
@@ -485,9 +485,9 @@ python3 main.py
 
 | 시연 | 설명 |
 |------|------|
-| ![플라스틱을 인식하고 plastic으로 움직이는 모습](KakaoTalk_20260617_115058664.gif) | 플라스틱 인식 → `plastic` 으로 분류 |
-| ![종이를 인식하고 paper로 움직이는 모습](KakaoTalk_20260617_115042651.gif) | 종이 인식 → `paper` 로 분류 |
-| ![캔을 인식하고 metal로 움직이는 모습](KakaoTalk_20260617_115053301.gif) | 캔 인식 → `metal` 로 분류 |
+| ![](images/KakaoTalk_20260617_115058664.gif) | 플라스틱 인식 → `plastic` 으로 분류 |
+| ![](images/KakaoTalk_20260617_115042651.gif) | 종이 인식 → `paper` 로 분류 |
+| ![](images/KakaoTalk_20260617_115053301.gif) | 캔 인식 → `metal` 로 분류 |
 
 ---
 
@@ -509,7 +509,7 @@ python3 main.py
    `can` 으로 찍힌 출력을 CMD로 저장해 위치를 조정하며 평균값을 확인했다.
    → SSH IP를 확인해 연결하고, 일반화된 값을 얻기 위해 위치와 배경을 조정했다.
 
-   ![capture.jpg](capture.jpg)
+   ![](images/capture.jpg)
 
 5. **라이브러리 충돌**
    개별 테스트를 마친 부품을 `main.py` 로 통합하는 과정에서 여러 라이브러리 충돌이 발생했다.
