@@ -1,27 +1,52 @@
-# 🗑️ IoT26-Project - Smart Recycle
+# ♻️ Smart Recycle — AI 자동 분리수거 시스템
 
-라즈베리파이와 YOLOv8 AI 모델을 활용한 **자동 쓰레기 분리수거 시스템**입니다.  
-초음파 센서로 사용자를 감지하고, 카메라로 쓰레기를 촬영해 **플라스틱 / 캔 / 종이**를 분류한 뒤 서보 모터로 분기판을 이동시킵니다.
+라즈베리파이 기반의 **IoT 스마트 분리수거함**입니다.
+초음파 센서로 사용자 접근을 감지하고, 카메라로 촬영한 쓰레기를 **YOLOv8(ONNX) 모델**로 분류(`plastic` / `paper` / `metal`)한 뒤, 서보 모터가 분기판을 회전시켜 해당 칸으로 분류해 줍니다. 대기 상태에서는 온·습도 정보를 LCD에 표시합니다.
+
+> 📚 IoT / Edge Computing Term Project
 
 ---
 
-## 📋 시스템 구성
+## 🧩 시스템 구성
 
-| 부품 | 역할 |
+| 분류 | 부품 |
 |------|------|
-| Raspberry Pi | 메인 컨트롤러 |
-| PiCamera2 | 쓰레기 촬영 |
-| YOLOv8 (ONNX) | AI 분류 모델 |
-| 초음파 센서 (HC-SR04) | 사용자 접근 감지 |
-| 서보 모터 | 분기판 각도 제어 |
-| LCD (I2C, 16x2) | 상태 표시 |
-| SHT30 | 온도·습도 측정 |
+| 보드 | Raspberry Pi |
+| 입력 | Pi Camera, 초음파 센서(HC-SR04), 온습도 센서(SHT30) |
+| 출력 | I2C LCD (16x2), 서보 모터(SG90) |
+| AI | YOLOv8n 폐기물 12-class 분류 모델 (ONNX 변환) |
+
+### 동작 흐름
+
+```
+대기 (온·습도 표시)
+   │  초음파 < 20cm
+   ▼
+사용자 접근 감지 → 카메라 촬영 → ONNX 추론
+   │
+   ▼
+분류 결과(plastic / paper / metal)
+   │
+   ▼
+서보 모터로 분기판 회전 → 해당 칸으로 투입
+   │
+   ▼
+대기 상태로 복귀
+```
+
+### 분기판 각도 매핑
+
+| 분류 | 서보 각도 |
+|------|-----------|
+| plastic | `-70°` |
+| paper | `0°` |
+| metal | `70°` |
 
 ---
 
 ## 0단계: 초안 작업
 
-![초안 스케치](KakaoTalk_20260616_185715034.jpg)
+![KakaoTalk_20260616_185715034.jpg](KakaoTalk_20260616_185715034.jpg)
 
 ---
 
@@ -29,19 +54,11 @@
 
 라즈베리파이에 SSH로 원격 접속합니다.
 
-```bash
-ssh <사용자명>@<IP주소>
-```
-
-> 같은 와이파이 환경에서 다른 라즈베리파이와 혼선이 생길 경우, 사용자명과 호스트이름을 변경하여 구분합니다.
-
 ---
 
 ## 2단계: 카메라 연결
 
-```bash
-nano camera_test.py
-```
+`camera_test.py`
 
 ```python
 from picamera2 import Picamera2
@@ -65,9 +82,7 @@ python3 camera_test.py
 
 ## 3단계: LCD 연결
 
-```bash
-nano lcd_test.py
-```
+`lcd_test.py`
 
 ```python
 from RPLCD.i2c import CharLCD
@@ -97,9 +112,7 @@ python3 lcd_test.py
 
 ## 4단계: 초음파 센서 연결
 
-```bash
-nano ultrasonic_test.py
-```
+`ultrasonic_test.py`
 
 ```python
 import RPi.GPIO as GPIO
@@ -170,9 +183,7 @@ python3 ultrasonic_test.py
 
 ## 5단계: 온도·습도 센서 연결
 
-```bash
-nano sht30_test.py
-```
+`sht30_test.py`
 
 ```python
 import time
@@ -199,9 +210,7 @@ python3 sht30_test.py
 
 ## 6단계: 서보 모터 연결
 
-```bash
-nano servo_angle_test.py
-```
+`servo_angle_test.py`
 
 ```python
 from gpiozero import AngularServo
@@ -235,35 +244,31 @@ python3 servo_angle_test.py
 
 ## 7단계: AI 모델 설치
 
-1. [HuggingFace](https://huggingface.co/kendrickfff/waste-classification-yolov8-ken/tree/main)에서 `yolov8n-waste-12cls-best.pt` 직접 다운로드
+1. [Hugging Face: waste-classification-yolov8-ken](https://huggingface.co/kendrickfff/waste-classification-yolov8-ken/tree/main) 에서 `yolov8n-waste-12cls-best.pt` 를 직접 다운로드
 
-2. 컴퓨터 CMD에서 `.pt` 파일을 ONNX 파일로 변환
+2. 컴퓨터(CMD)에서 `.pt` 파일을 ONNX 형식으로 변환
 
-```bash
-python -c "from ultralytics import YOLO; YOLO('yolov8n-waste-12cls-best.onnx').export(format='onnx')"
-```
+   ```bash
+   python -c "from ultralytics import YOLO; YOLO('yolov8n-waste-12cls-best.pt').export(format='onnx')"
+   ```
 
-3. 컴퓨터 CMD에서 라즈베리파이로 ONNX 파일 전송
+3. 변환한 ONNX 파일을 라즈베리파이로 전송 (`scp`)
 
-```bash
-scp yolov8n-waste-12cls-best.onnx <사용자명>@<IP주소>:/home/<사용자명>/models/
-```
+   ```bash
+   scp yolov8n-waste-12cls-best.onnx dlaguswns@192.168.0.54:/home/dlaguswns/models/
+   ```
 
-### 동작 확인
-
-![캔 인식하고 -90도로 돌아가는 모터](KakaoTalk_20260616_195511742_01.jpg)
-
-![플라스틱 인식하고 90도로 돌아가는 모터](KakaoTalk_20260616_195511742.jpg)
-
-![종이로 인식하고 0도에 있는 모터](KakaoTalk_20260616_195511742_02.jpg)
+| 인식 결과 | 동작 |
+|-----------|------|
+| ![캔 인식하고 70도로 돌아가는 모터](KakaoTalk_20260616_195511742_01.jpg) | 캔(metal) 인식 → 모터 `70°` |
+| ![플라스틱 인식하고 -70도로 돌아가는 모터](KakaoTalk_20260616_195511742.jpg) | 플라스틱(plastic) 인식 → 모터 `-70°` |
+| ![종이로 인식하고 0도에 있는 모터](KakaoTalk_20260616_195511742_02.jpg) | 종이(paper) 인식 → 모터 `0°` |
 
 ---
 
 ## 8단계: 시스템 통합
 
-```bash
-nano main.py
-```
+`main.py`
 
 ```python
 from time import sleep, time
@@ -327,9 +332,9 @@ servo = AngularServo(
 
 # 분기판 각도
 ANGLES = {
-    "plastic": -90,
+    "plastic": -70,
     "paper": 0,
-    "metal": 90
+    "metal": 70
 }
 
 # =====================
@@ -347,7 +352,7 @@ picam2.start()
 # =====================
 
 session = ort.InferenceSession(
-    "/home/<사용자명>/models/yolov8n-waste-12cls-best.onnx"
+    "/home/dlaguswns/models/yolov8n-waste-12cls-best.onnx"
 )
 
 # =====================
@@ -472,30 +477,40 @@ python3 main.py
 
 ## 9단계: 쓰레기통 제작 및 연결
 
-![완성된 쓰레기통](KakaoTalk_20260616_201003674.jpg)
+![KakaoTalk_20260617_114949820.jpg](KakaoTalk_20260617_114949820.jpg)
+
+---
+
+## 🎬 결과물
+
+| 시연 | 설명 |
+|------|------|
+| ![플라스틱을 인식하고 plastic으로 움직이는 모습](KakaoTalk_20260617_115058664.gif) | 플라스틱 인식 → `plastic` 으로 분류 |
+| ![종이를 인식하고 paper로 움직이는 모습](KakaoTalk_20260617_115042651.gif) | 종이 인식 → `paper` 로 분류 |
+| ![캔을 인식하고 metal로 움직이는 모습](KakaoTalk_20260617_115053301.gif) | 캔 인식 → `metal` 로 분류 |
 
 ---
 
 ## 📎 부록: 시행착오
 
-**1. SSH 연결 혼선**  
-같은 와이파이에서 다른 라즈베리파이들과 IP 혼선이 발생했다.  
-→ 사용자명과 호스트이름을 변경해 구분하여 해결했다.
+1. **SSH 연결 혼선**
+   같은 와이파이를 사용하면서 다른 라즈베리파이들과 혼선이 생겨 SSH 연결이 어려웠다.
+   → 사용자명과 호스트명을 변경하여 연결했다.
 
-**2. 브레드보드 배선 문제**  
-GPIO 핀과 브레드보드 배선을 찾기 어려웠다.  
-→ GPIO 40Pin 확장모듈 T자형으로 직관적으로 설치했고, 구멍 부족 문제는 +/- 버스 라인으로 우회 연결했다.
+2. **브레드보드 배선 문제**
+   라즈베리파이에 브레드보드를 연결할 때 배선 찾기가 어려웠다.
+   → GPIO 40핀 확장 모듈을 T자형으로 직관적으로 설치했고, 부족한 핀 문제는 `+`/`-` 라인으로 옮겨 해결했다.
 
-**3. 라즈베리파이에서 .pt 파일 직접 실행 불가**  
-`ultralytics`와 `PyTorch` 설치 중 용량 문제가 발생했다.  
-→ 컴퓨터에서 `.pt` 파일을 다운받아 ONNX 형식으로 변환 후 `scp`로 전송했다.
+3. **`.pt` 파일 실행 시 용량 문제**
+   라즈베리파이에서 `.pt` 파일을 바로 실행하려 했으나, `ultralytics`·PyTorch 설치 중 용량 문제가 발생했다.
+   → 컴퓨터에서 파일을 직접 받아 ONNX 파일로 변환해 해결했다.
 
-**4. AI 모델 출력값 위치 조정**  
-`can`으로 찍힌 출력을 CMD로 저장해 평균값을 확인하고 위치를 조정했다.  
-→ SSH IP를 확인해 연결하고, 일반화된 값을 얻기 위해 촬영 위치 및 배경을 조정했다.
+4. **AI 모델 평균값 확인**
+   `can` 으로 찍힌 출력을 CMD로 저장해 위치를 조정하며 평균값을 확인했다.
+   → SSH IP를 확인해 연결하고, 일반화된 값을 얻기 위해 위치와 배경을 조정했다.
 
-![AI 모델 출력값 확인 화면](capture.jpg)
+   ![capture.jpg](capture.jpg)
 
-**5. 라이브러리 충돌 문제**  
-모든 부품을 개별 테스트 후 `main.py`로 통합하는 과정에서 라이브러리 충돌이 발생했다.  
-→ 구버전 GPIO 라이브러리를 제거하고 `/usr/lib/python3/dist-packages/RPi/GPIO/__init__.py`로 교체해 해결했다.
+5. **라이브러리 충돌**
+   개별 테스트를 마친 부품을 `main.py` 로 통합하는 과정에서 여러 라이브러리 충돌이 발생했다.
+   → 구버전 GPIO 라이브러리를 제거하고 `/usr/lib/python3/dist-packages/RPi/GPIO/__init__.py` 로 변경해 해결했다.
